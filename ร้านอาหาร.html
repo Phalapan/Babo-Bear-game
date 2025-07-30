@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>จับไข่มุก! 🧋</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet" />
+<style>
+  body {
+    font-family: 'Kanit', sans-serif;
+    margin: 0;
+    overflow: hidden;
+    background-color: #fff7e6;
+    touch-action: none;
+    position: relative;
+    height: 100vh;
+  }
+  #scoreboard, #timeLeft, #highScore, #resetBtn {
+    position: fixed;
+    top: 10px;
+    font-size: 1.5em;
+    background: #ffcc80;
+    padding: 10px 20px;
+    border-radius: 12px;
+    color: #5d4037;
+    z-index: 20;
+    user-select: none;
+  }
+  #scoreboard { left: 10px; }
+  #timeLeft { right: 10px; }
+  #highScore {
+    top: 60px;
+    left: 10px;
+    font-size: 1em;
+    background: #ffe0b2;
+  }
+  #resetBtn {
+    top: 60px;
+    right: 10px;
+    font-size: 1em;
+    background: #f44336;
+    color: white;
+    cursor: pointer;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+  }
+  .bubble {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/5/57/Tapioca_pearls_black.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    border-radius: 50%;
+    cursor: pointer;
+    animation-name: floatUp;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+    user-select: none;
+    box-shadow: 0 0 8px rgba(0,0,0,0.5);
+  }
+  @keyframes floatUp {
+    from {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(-120vh);
+      opacity: 0;
+    }
+  }
+  #gameover, #startScreen {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffeecc;
+    padding: 40px;
+    font-size: 1.5em;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    z-index: 30;
+  }
+  button {
+    margin-top: 20px;
+    font-size: 1.2em;
+    padding: 10px 20px;
+    background: #ff7043;
+    color: white;
+    border: none;
+    border-radius: 10px;
+  }
+  input {
+    font-size: 1.2em;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <div>ชื่อผู้เล่น:</div>
+  <input type="text" id="playerNameInput" placeholder="ใส่ชื่อของคุณ" />
+  <br />
+  <button id="startBtn">เริ่มเกม</button>
+</div>
+
+<div id="scoreboard" style="display:none;">
+  คะแนน: <span id="score">0</span>
+</div>
+<div id="timeLeft" style="display:none;">
+  เวลา: <span id="time">10</span>s
+</div>
+<div id="highScore">
+  🏆 คะแนนสูงสุด: <span id="highScoreName">-</span> (<span id="highScoreValue">0</span>)
+</div>
+<button id="resetBtn" title="ล้างคะแนนสูงสุด">รีเซ็ตคะแนนสูงสุด</button>
+
+<div id="gameover" style="display:none;">
+  ⏱ หมดเวลา!<br />
+  <div>
+    คุณ <span id="finalPlayer"></span> ได้คะแนน <span id="finalScore"></span>
+  </div>
+  <div id="newHighScore" style="color: green; font-weight: bold;"></div>
+  <button id="restartBtn">เล่นอีกครั้ง</button>
+</div>
+
+<script>
+  let score = 0;
+  let time = 10;
+  let playerName = "";
+  let gameInterval, timerInterval;
+
+  const startBtn = document.getElementById('startBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  function randomX() {
+    return Math.random() * (window.innerWidth - 60);
+  }
+
+  function spawnBubble() {
+    const bubble = document.createElement('div');
+    bubble.classList.add('bubble');
+    bubble.style.left = randomX() + 'px';
+    bubble.style.top = window.innerHeight + 'px';
+
+    const duration = 3000 + Math.random() * 2000;
+    bubble.style.animationDuration = duration + 'ms';
+
+    bubble.addEventListener('click', () => {
+      score++;
+      document.getElementById('score').innerText = score;
+      bubble.remove();
+    });
+
+    bubble.addEventListener('animationend', () => {
+      bubble.remove();
+    });
+
+    document.body.appendChild(bubble);
+  }
+
+  function startGame() {
+    playerName = document.getElementById('playerNameInput').value.trim() || 'ผู้เล่น';
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('gameover').style.display = 'none';
+
+    document.getElementById('scoreboard').style.display = 'block';
+    document.getElementById('timeLeft').style.display = 'block';
+
+    score = 0;
+    time = 10;
+    document.getElementById('score').innerText = score;
+    document.getElementById('time').innerText = time;
+    loadHighScore();
+
+    gameInterval = setInterval(spawnBubble, 400);
+    timerInterval = setInterval(() => {
+      time--;
+      document.getElementById('time').innerText = time;
+      if (time <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame() {
+    clearInterval(gameInterval);
+    clearInterval(timerInterval);
+    document.querySelectorAll('.bubble').forEach(b => b.remove());
+    document.getElementById('finalScore').innerText = score;
+    document.getElementById('finalPlayer').innerText = playerName;
+    checkHighScore();
+    document.getElementById('gameover').style.display = 'block';
+
+    document.getElementById('scoreboard').style.display = 'none';
+    document.getElementById('timeLeft').style.display = 'none';
+  }
+
+  function restartGame() {
+    document.getElementById('playerNameInput').value = playerName;
+    document.getElementById('startScreen').style.display = 'block';
+    document.getElementById('gameover').style.display = 'none';
+  }
+
+  function checkHighScore() {
+    const currentHigh = parseInt(localStorage.getItem('highScore') || '0');
+    const highName = localStorage.getItem('highScoreName') || '';
+    if (score > currentHigh) {
+      localStorage.setItem('highScore', score);
+      localStorage.setItem('highScoreName', playerName);
+      document.getElementById('newHighScore').innerText = '🎉 คุณทำคะแนนสูงสุดใหม่!';
+    } else {
+      document.getElementById('newHighScore').innerText = '';
+    }
+    loadHighScore();
+  }
+
+  function loadHighScore() {
+    const hs = localStorage.getItem('highScore') || '0';
+    const hsn = localStorage.getItem('highScoreName') || '-';
+    document.getElementById('highScoreValue').innerText = hs;
+    document.getElementById('highScoreName').innerText = hsn;
+  }
+
+  function resetHighScore() {
+    if (confirm('ต้องการล้างคะแนนสูงสุดทั้งหมดใช่หรือไม่?')) {
+      localStorage.removeItem('highScore');
+      localStorage.removeItem('highScoreName');
+      loadHighScore();
+      alert('ล้างคะแนนสูงสุดเรียบร้อยแล้ว');
+    }
+  }
+
+  startBtn.addEventListener('click', startGame);
+  restartBtn.addEventListener('click', restartGame);
+  resetBtn.addEventListener('click', resetHighScore);
+
+  loadHighScore();
+</script>
+
+</body>
+</html>
